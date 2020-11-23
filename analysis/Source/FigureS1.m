@@ -13,6 +13,11 @@ end
 load('SplicingLib_db.mat')
 load('double_sp_eff_tbl.mat')
 
+seed=20200310;
+rng(seed);
+
+
+%% Figure S1A
 inds = find(splicing_lib_tbl.BC_num==4);
 multiple_BC_tbl=splicing_lib_tbl(inds,:);
 designed_seq=cellfun(@(x) x(43:end-30),multiple_BC_tbl.seq,'un',0);
@@ -35,25 +40,40 @@ for i=1:length(designed_seq_u)
     n=n+1;
 end
 multiple_BC_SE_mat(n:end,:)=[];
+multiple_BC_cryptic_SE_mat(n:end,:)=[];
 
 multiple_BC_noZero_mat=multiple_BC_SE_mat(nansum(multiple_BC_SE_mat,2)>0,:);
 multiple_BC_var=nanvar(multiple_BC_SE_mat,[],2);
 multiple_BC_noZero_var=nanvar(multiple_BC_noZero_mat,[],2);
+
+multiple_BC_cryptic_noZero_mat=multiple_BC_cryptic_SE_mat(nansum(multiple_BC_cryptic_SE_mat,2)>0,:);
+multiple_BC_cryptic_var=nanvar(multiple_BC_cryptic_SE_mat,[],2);
+multiple_BC_cryptic_noZero_var=nanvar(multiple_BC_cryptic_noZero_mat,[],2);
+
+multiple_BC_total_SE_mat = multiple_BC_SE_mat + multiple_BC_cryptic_SE_mat;
+multiple_BC_total_noZero_mat=multiple_BC_total_SE_mat(nansum(multiple_BC_total_SE_mat,2)>0,:);
+multiple_BC_total_var=nanvar(multiple_BC_total_SE_mat,[],2);
+multiple_BC_total_noZero_var=nanvar(multiple_BC_total_noZero_mat,[],2);
 
 multiple_BC_noZero_vec = multiple_BC_noZero_mat(isfinite(multiple_BC_noZero_mat));
 multiple_BC_ctrl_noZero = reshape(randsample(multiple_BC_noZero_vec,floor(length(multiple_BC_noZero_vec)/4)*4),floor(length(multiple_BC_noZero_vec)/4),4);
 
 multiple_BC_ctrl_noZero_var=nanvar(multiple_BC_ctrl_noZero,[],2);
 
-load('multiple_BC_ctrl_stats.mat')
+multiple_BC_total_noZero_vec = multiple_BC_total_noZero_mat(isfinite(multiple_BC_total_noZero_mat));
+multiple_BC_ctrl_total_noZero = reshape(randsample(multiple_BC_total_noZero_vec,floor(length(multiple_BC_total_noZero_vec)/4)*4),floor(length(multiple_BC_total_noZero_vec)/4),4);
 
+multiple_BC_ctrl_total_noZero_var=nanvar(multiple_BC_ctrl_total_noZero,[],2);
+
+load('multiple_BC_ctrl_stats.mat')
+%%
 figure
-histogram(multiple_BC_var_mean,'Normalization','probability')
+histogram(randsample(multiple_BC_total_var_mean,1e4),'Normalization','probability')
 hold on
-stem(mean(multiple_BC_noZero_var),0.04,'^','linewidth',1.5)
-xlim([0 0.15])
+stem(mean(multiple_BC_total_noZero_var),0.08,'^','linewidth',1.5)
+xlim([0 0.2])
 h=legend('10^4 randomized sets','multiple barcode sets');
-h.Location='northwest';
+h.Location='southwest';
 h.FontSize=12;
 ax = gca;
 ax.FontSize=18;
@@ -62,10 +82,17 @@ ylabel('Frequency','fontsize',20)
 
 export_fig(sprintf('%sA - multiple_BC.png',Figures_str),'-png','-r100','-transparent');
 
-%%
+%% Figure S1B
 
-seed=20200310;
-rng(seed);
+mycorrplot(multiple_BC_total_noZero_mat(:,1:4))
+r = nancorr(multiple_BC_total_noZero_mat(:,1:4));
+r(r==1)=nan;
+nanmean(r(:))
+
+export_fig(sprintf('%sB - multiple_BC_total_corrplot.png',Figures_str),'-png','-r100','-transparent');
+
+
+%% Figure S1C
 
 unspliced_RNA = randn(5e3,1);
 spliced_RNA = randn(5e3,1);
