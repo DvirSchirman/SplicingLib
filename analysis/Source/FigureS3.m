@@ -171,38 +171,38 @@ export_fig(sprintf('%sC - intron_length.png',Figures_str),'-png','-r100','-trans
 
 %% Figure S3D
 
-inds=find(cellfun(@length,splicing_lib_tbl.branch_pos_from_3)==1);
-tbl=splicing_lib_tbl(inds,:);
-CT = cbrewer('qual','Paired',10);
-
-bins=[0,20,30,40,50,100];
-bins_sp_cell={};
-bins_str={};
-for i=2:length(bins)
-    inds=find(cell2mat(tbl.branch_pos_from_3)>=bins(i-1) & cell2mat(tbl.branch_pos_from_3)<bins(i));
-    bins_sp_cell=[bins_sp_cell, {tbl.splicing_eff_median(inds)}];
-    if i==2
-        bins_str{i-1}=sprintf('0-%d',bins(i));
-    elseif i==length(bins)
-        bins_str{i-1}=sprintf('%d-100',bins(i-1));
-    else
-        bins_str{i-1}=sprintf('%d-%d',bins(i-1),bins(i));
-    end
-end
-figure('units','centimeters','outerposition',[2 2 32 18])
-bins_sp_cell_nozero=cellfun(@(x) x(x>0),bins_sp_cell,'un',0);
-
-p_distribution_mat = get_T_p_val_mat(bins_sp_cell_nozero);
-p_distribution_mat_h = p_distribution_mat < 0.05/(size(p_distribution_mat,1)*(size(p_distribution_mat,1)-1)/2);
-
-myviolinplot_mean(bins_sp_cell,repmat(CT(1,:),length(bins_sp_cell),1))
-ax = gca;
-ax.XTick=1:length(bins_sp_cell);
-ax.XTickLabel =bins_str;
-ax.XAxis.Limits=[0.5 length(bins_sp_cell)+0.5];
-ax.FontSize=25;
-ylabel(sprintf('Splicing efficiency'),'FontSize',30)
-
-export_fig(sprintf('%sD - branch_to_3SS.png',Figures_str),'-png','-r100','-transparent');
-
+% inds=find(cellfun(@length,splicing_lib_tbl.branch_pos_from_3)==1);
+% tbl=splicing_lib_tbl(inds,:);
+% CT = cbrewer('qual','Paired',10);
+% 
+% bins=[0,20,30,40,50,100];
+% bins_sp_cell={};
+% bins_str={};
+% for i=2:length(bins)
+%     inds=find(cell2mat(tbl.branch_pos_from_3)>=bins(i-1) & cell2mat(tbl.branch_pos_from_3)<bins(i));
+%     bins_sp_cell=[bins_sp_cell, {tbl.splicing_eff_median(inds)}];
+%     if i==2
+%         bins_str{i-1}=sprintf('0-%d',bins(i));
+%     elseif i==length(bins)
+%         bins_str{i-1}=sprintf('%d-100',bins(i-1));
+%     else
+%         bins_str{i-1}=sprintf('%d-%d',bins(i-1),bins(i));
+%     end
+% end
+% figure('units','centimeters','outerposition',[2 2 32 18])
+% bins_sp_cell_nozero=cellfun(@(x) x(x>0),bins_sp_cell,'un',0);
+% 
+% p_distribution_mat = get_T_p_val_mat(bins_sp_cell_nozero);
+% p_distribution_mat_h = p_distribution_mat < 0.05/(size(p_distribution_mat,1)*(size(p_distribution_mat,1)-1)/2);
+% 
+% myviolinplot_mean(bins_sp_cell,repmat(CT(1,:),length(bins_sp_cell),1))
+% ax = gca;
+% ax.XTick=1:length(bins_sp_cell);
+% ax.XTickLabel =bins_str;
+% ax.XAxis.Limits=[0.5 length(bins_sp_cell)+0.5];
+% ax.FontSize=25;
+% ylabel(sprintf('Splicing efficiency'),'FontSize',30)
+% 
+% export_fig(sprintf('%sD - branch_to_3SS.png',Figures_str),'-png','-r100','-transparent');
+% 
 
