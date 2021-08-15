@@ -44,6 +44,82 @@ splicing_lib_tbl = splicing_lib_tbl(inds,:);
 
 %% Figure S3A
 
+alt_inds = find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic alternative background')),splicing_lib_tbl.type,'un',0)));
+syn_inds = find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic')),splicing_lib_tbl.type,'un',0)) & ...
+    strcmp(splicing_lib_tbl.SS_5,'GTATGT') & strcmp(splicing_lib_tbl.branch_seq,'TACTAAC') & ...
+    (strcmp(splicing_lib_tbl.SS_3,'CAG') | strcmp(splicing_lib_tbl.SS_3,'TAG')));
+
+syn_backgrounds_tbl=splicing_lib_tbl([syn_inds;alt_inds],:);
+
+alt_bg_SE_tbl=table();
+
+n=1;
+for i=1:size(syn_backgrounds_tbl,1)
+    if strcmp(syn_backgrounds_tbl.SS_3{i},'CAG')
+        id3=1;
+    elseif strcmp(syn_backgrounds_tbl.SS_3{i},'TAG')
+        id3=2;
+    else
+        error('unsupported 3'' site');
+    end
+    
+    id_vec=[syn_backgrounds_tbl.intron_len{i},syn_backgrounds_tbl.branch_pos_from_3{i},syn_backgrounds_tbl.W_tail_len{i} ,id3];
+    syn_backgrounds_tbl.id_vec{i}=num2str(id_vec);
+    
+    if i>1
+        ind = cellfind(alt_bg_SE_tbl.id_vec,syn_backgrounds_tbl.id_vec{i});
+        if isempty(ind)
+            alt_bg_SE_tbl.id_vec{n}=syn_backgrounds_tbl.id_vec{i};
+            alt_bg_SE_tbl.intron_len{n}=syn_backgrounds_tbl.intron_len{i};
+            alt_bg_SE_tbl.branch_pos_from_3{n}=syn_backgrounds_tbl.branch_pos_from_3{i};
+            alt_bg_SE_tbl.W_tail_len{n}=syn_backgrounds_tbl.W_tail_len{i};
+            alt_bg_SE_tbl.id3(n)=id3;
+            n=n+1;
+        end
+    else
+        alt_bg_SE_tbl.id_vec{n}=syn_backgrounds_tbl.id_vec{i};
+        alt_bg_SE_tbl.intron_len{n}=syn_backgrounds_tbl.intron_len{i};
+        alt_bg_SE_tbl.branch_pos_from_3{n}=syn_backgrounds_tbl.branch_pos_from_3{i};
+        alt_bg_SE_tbl.W_tail_len{n}=syn_backgrounds_tbl.W_tail_len{i};
+        alt_bg_SE_tbl.id3(n)=id3;
+        n=n+1;
+    end   
+end
+
+alt_bg_dSE_tbl=alt_bg_SE_tbl;
+alt_bg_SE_tbl{:,6:15}=zeros(size(alt_bg_SE_tbl,1),10);
+for i=1:size(syn_backgrounds_tbl,1)
+    ind = cellfind(alt_bg_SE_tbl.id_vec,syn_backgrounds_tbl.id_vec{i});
+    bg = syn_backgrounds_tbl.background{i};
+    alt_bg_SE_tbl{ind,5+bg}=syn_backgrounds_tbl.splicing_eff_median(i);
+end
+alt_bg_dSE_tbl{:,6:14}=alt_bg_SE_tbl{:,7:15}-alt_bg_SE_tbl{:,6};
+bg_names={'MUD1','UBC9','SNC1','rand1','rand2','rand3','rand4','rand5','rand6','rand7'};
+alt_bg_SE_tbl.Properties.VariableNames(6:end)=bg_names;
+alt_bg_dSE_tbl.Properties.VariableNames(6:end)=bg_names(2:end);
+
+%%
+figure('units','centimeters','outerposition',[5 5 32 18])
+violin_cell={};
+for i=2:length(bg_names)
+    violin_cell{1,i-1}=alt_bg_dSE_tbl.(bg_names{i});
+end
+myviolinplot_mean(violin_cell)
+ax = gca;
+ax.XTickLabel = bg_names(2:end);
+% xlabel('Bacground sequence')
+% ylabel('\Delta Splicing efficiency')
+ax.FontSize = 20;
+
+
+[~,p] = cellfun(@ttest, violin_cell);
+
+p_mat = get_Tpaired_p_val_mat(violin_cell);
+
+export_fig(sprintf('%sA - Alternative_backgrounds.png',Figures_str),'-png','-r100','-transparent');
+
+%% Figure S3B
+
 bins=[0.2,0.3,0.4,0.45,0.5,0.55,0.6,1];
 bins_sp_cell={};
 bins_str={};
@@ -83,10 +159,10 @@ bins_mean=mean(bins_mean);
 [r,p]=nancorr(bins_mean',mean_vec');
 
 
-export_fig(sprintf('%sA - polyY_violin.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sB - polyY_violin.png',Figures_str),'-png','-r100','-transparent');
 
 
-%% Figure S3B
+%% Figure S3C
 
 bins=[0,0.25,0.35,0.45,1];
 bins=[0 linspace(0.3,0.45,7) 1];
@@ -126,10 +202,10 @@ ax.FontSize=16;
 ylabel(sprintf('Splicing efficiency'),'FontSize',30)
 xlabel('GC content','FontSize',30)
 
-export_fig(sprintf('%sB - GC_violin.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sC - GC_violin.png',Figures_str),'-png','-r100','-transparent');
 
 
-%% Figure S3C
+%% Figure S3D
 
 bins = [0,73,88,105,121,150];
 bins_sp_cell={};
@@ -166,7 +242,7 @@ ylabel(sprintf('Splicing efficiency'),'FontSize',35)
 xlabel('Intron length','FontSize',35)
 % ylim([0 100])
 
-export_fig(sprintf('%sC - intron_length.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sD - intron_length.png',Figures_str),'-png','-r100','-transparent');
 
 
 %% Figure S3D

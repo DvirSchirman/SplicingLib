@@ -316,6 +316,109 @@ colorbar;
     
 export_fig(sprintf('%sC3 - ss3_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
 
+%% Figure S2D
+load('SplicingLib_db.mat')
+
+load('site_dG_GC_30.mat')
+
+[~, inds1, inds2] = intersect(splicing_lib_tbl.BC, sliding_dG_GC_tbl.BC);
+splicing_lib_tbl.ss5_dG=[];
+splicing_lib_tbl.ss3_dG=[];
+splicing_lib_tbl.branch_dG=[];
+splicing_lib_tbl.ss5_dG(inds1) = sliding_dG_GC_tbl.ss5_dG(inds2);
+splicing_lib_tbl.ss3_dG(inds1) = sliding_dG_GC_tbl.ss3_dG(inds2);
+splicing_lib_tbl.branch_dG(inds1) = sliding_dG_GC_tbl.branch_dG(inds2);
+
+get_GC =@(x) (sum(x=='C')+sum(x=='G'))./length(x);
+get_Y = @(x) (sum(x=='T')+sum(x=='C'))/length(x);
+get_T = @(x) (sum(x=='T'))/length(x);
+
+neg_ctrl_inds = cell2mat(cellfun(@(x) ~isempty(strfind(x,'ss control')),splicing_lib_tbl.type,'un',0));
+neg_ctrl_inds = find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'ss control')),splicing_lib_tbl.type,'un',0)));
+neg_ctrl_inds = [neg_ctrl_inds; find(cell2mat(cellfun(@(x) ~isempty(strfind(x,'double')),splicing_lib_tbl.type,'un',0)))];
+neg_ctrl_inds = [neg_ctrl_inds; cellfind(splicing_lib_tbl.type,'synthetic control')];
+neg_ctrl_inds = [neg_ctrl_inds; cellfind(splicing_lib_tbl.type,'synthetic alternative background control')];
+neg_ctrl_inds = [neg_ctrl_inds; cellfind(splicing_lib_tbl.type,'synthetic hairpin - control')];
+
+neg_ctrl_tbl = splicing_lib_tbl(neg_ctrl_inds,:);
+splicing_lib_tbl(neg_ctrl_inds,:)=[];
+
+syn_mut_inds = find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic hairpin' )),splicing_lib_tbl.type,'un',0)));
+% syn_mut_inds = [syn_mut_inds; find(cell2mat(cellfun(@(y) (strcmp(y,'endogenous - mutated sites' )),splicing_lib_tbl.type,'un',0)))];
+% syn_mut_inds = [syn_mut_inds; find(cell2mat(cellfun(@(y) (strcmp(y,'endogenous pombe - mutated sites' )),splicing_lib_tbl.type,'un',0)))];
+
+syn_mut_tbl = splicing_lib_tbl(syn_mut_inds,:);
+% stem_len_max=cellfun(@(x,y,z) nanmax([x,y,z]),syn_mut_tbl.ss5_stem_len,syn_mut_tbl.branch_stem_len,syn_mut_tbl.ss3_stem_len);
+% inds=find(stem_len_max>14);
+% syn_mut_tbl=syn_mut_tbl(inds,:);
+
+syn_inds=find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic')),splicing_lib_tbl.type,'un',0)));
+consensus_inds=cellfind(splicing_lib_tbl.SS_5,'GTATGT');
+consensus_inds = intersect(consensus_inds,cellfind(splicing_lib_tbl.branch_seq,'TACTAAC'));
+consensus_inds = intersect(consensus_inds,[cellfind(splicing_lib_tbl.SS_3,'TAG'); cellfind(splicing_lib_tbl.SS_3,'CAG')] );
+syn_consesus_inds = intersect(syn_inds,consensus_inds);
+
+consensus_tbl = splicing_lib_tbl(syn_consesus_inds,:);
+
+hairpin_SE_tbl = table();
+n=1;
+for i=1:size(consensus_tbl,1)
+    if strcmp(consensus_tbl.SS_3{i},'CAG')
+        id3=1;
+    elseif strcmp(consensus_tbl.SS_3{i},'TAG')
+        id3=2;
+    else
+        error('unsupported 3'' site');
+    end
+    
+    id_vec=[consensus_tbl.intron_len{i},consensus_tbl.branch_pos_from_3{i},consensus_tbl.W_tail_len{i} ,id3];
+    consensus_tbl.id_vec{i}=num2str(id_vec);
+end
+
+consensus_SE_CAG = consensus_tbl.splicing_eff_median(cellfind(consensus_tbl.id_vec, '121   30    8    1'));
+consensus_SE_TAG = consensus_tbl.splicing_eff_median(cellfind(consensus_tbl.id_vec, '121   30    8    2'));
+
+for i=1:size(syn_mut_tbl,1)
+    if strcmp(syn_mut_tbl.SS_3{i},'CAG')
+        syn_mut_tbl.dSE(i) = (syn_mut_tbl.splicing_eff_median(i) - consensus_SE_CAG)/consensus_SE_CAG;
+    elseif strcmp(syn_mut_tbl.SS_3{i},'TAG')
+        syn_mut_tbl.dSE(i) = (syn_mut_tbl.splicing_eff_median(i) - consensus_SE_TAG)/consensus_SE_TAG;
+    else
+        error('unsupported 3'' site');
+    end
+end
+
+states = [  1,0,0;...
+            0,1,0;...
+            0,0,1;...
+            1,1,0;...
+            1,0,1;...
+            0,1,1;...
+            1,1,1];
+
+violin_cell={};
+states_str=[];
+for i=1:7
+    violin_cell{i}=syn_mut_tbl.dSE(sum(cell2mat(syn_mut_tbl.site_hairpin)==states(i,:),2)==3);
+    states_str=[states_str;mat2str(states(i,:))];
+end
+
+figure('units','centimeters','outerposition',[5 5 32 18])
+myviolinplot_mean(violin_cell)
+ax = gca;
+ylabel('\Delta Splicing efficiency')
+% ylim([0 1])
+% ax.YTick=-1:0.2:0;
+% ax.YTickLabel={'0';'0.2';'0.4';'0.6';'0.8';'1'};
+ax.FontSize=25;
+% ax.XTickLabel=[{'[0 0 0]'}, states_str];
+% xlabel('Mutated sites ([5'', branch, 3''])','FontSize',12)
+% ylabel(sprintf('Non-Zero\nSplicing efficiency'),'FontSize',12)
+xlim([0.5 length(violin_cell)+0.5]);
+
+p = get_T_p_val_mat(violin_cell);
+
+export_fig(sprintf('%sD - hairpin_sites.png',Figures_str),'-png','-r100','-transparent');
 
 
 

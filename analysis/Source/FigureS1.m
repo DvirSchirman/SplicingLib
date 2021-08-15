@@ -129,6 +129,7 @@ export_fig(sprintf('%sB - multiple_BC.png',Figures_str),'-png','-r100','-transpa
 
 mycorrplot(multiple_BC_total_noZero_mat(:,1:4))
 r = nancorr(multiple_BC_total_noZero_mat(:,1:4));
+r = nancorr(multiple_BC_total_noZero_mat(:,1:4),'Spearman');
 r(r==1)=nan;
 nanmean(r(:))
 
