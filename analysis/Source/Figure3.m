@@ -108,6 +108,8 @@ splicing_lib_tbl(cell2mat(cellfun(@(x) ~isempty(strfind(x,'double')),splicing_li
 splicing_lib_tbl(cellfind(splicing_lib_tbl.type,'synthetic control'),:)=[];
 splicing_lib_tbl(cellfind(splicing_lib_tbl.type,'synthetic alternative background control'),:)=[];
 splicing_lib_tbl(cellfind(splicing_lib_tbl.type,'synthetic hairpin - control'),:)=[];
+splicing_lib_tbl(cellfind(splicing_lib_tbl.type,'synthetic hairpin'),:)=[];
+splicing_lib_tbl(cellfind(splicing_lib_tbl.type,'synthetic mutated'),:)=[];
 
 
 splicing_lib_tbl.GC=cellfun(@(x) get_GC(x),splicing_lib_tbl.seq);
