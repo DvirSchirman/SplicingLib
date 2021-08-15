@@ -100,8 +100,86 @@ r=np.corrcoef(y_pred,y_test)
 r=r[0,1]
 print('Pearson corr:', r)
 
+# #%%
+# inds = sample(range(len(y_pred)),227)
 
-##
+# plt.scatter(y_pred[inds],y_test[inds],alpha=0.5)
+# plt.ylim([0,1])
+# plt.xlim([0,1])
+# fig=plt.gcf()
+# plt.show()
+
+# r=np.corrcoef(y_pred[inds],y_test[inds])
+# r=r[0,1]
+# print('Pearson corr (sampled):', r)
+
+#%%
+
+# y_pred = y_pred[inds]
+# y_test = y_test[inds]
+
+TPR = []
+FPR = []
+for thr in np.linspace(0,0.99,100):
+    predict_spliced = y_pred > thr
+    measured_spliced = y_test.values > thr
+    
+    TP = predict_spliced & measured_spliced
+    FP = predict_spliced & np.invert(measured_spliced)
+    TN = np.invert(predict_spliced) & np.invert(measured_spliced)
+    FN = np.invert(predict_spliced) & measured_spliced
+    
+    TPR.append(sum(TP)/(sum(TP) + sum(FN)))
+    FPR.append(sum(FP)/(sum(FP) + sum(TN)))
+    
+plt.plot(FPR, TPR)
+# plt.plot(np.linspace(0,0.99,100),np.linspace(0,0.99,100))
+plt.ylim([0,1])
+plt.xlim([0,1])
+fig=plt.gcf()
+plt.show()
+
+FPR.sort()
+TPR.sort()
+mTPR = np.array(TPR[0:99])*0.5 + np.array(TPR[1:100])*0.5
+AUC = np.dot(np.diff(FPR),mTPR)
+
+#%%
+
+thr1 = 0.05
+# thr2 = 1 - thr1
+thr2 = 0.75
+
+predict_fully_spliced = y_pred >= thr2
+predict_intermediate = (y_pred > thr1) & (y_pred<thr2)
+predict_unspliced = y_pred <= thr1
+measured_fully_spliced = y_test >= thr2
+measured_intermediate = (y_test > thr1) & (y_test<thr2)
+measured_unspliced = y_test <= thr1
+
+cont_tbl = np.zeros((3,3))
+cont_tbl[0,0] = sum(predict_unspliced & measured_unspliced)
+cont_tbl[1,1] = sum(predict_intermediate & measured_intermediate)
+cont_tbl[2,2] = sum(predict_fully_spliced & measured_fully_spliced)
+cont_tbl[0,1] = sum(predict_unspliced & measured_intermediate)
+cont_tbl[0,2] = sum(predict_unspliced & measured_fully_spliced)
+cont_tbl[1,0] = sum(predict_intermediate & measured_unspliced)
+cont_tbl[2,0] = sum(predict_fully_spliced & measured_unspliced)
+cont_tbl[1,2] = sum(predict_intermediate & measured_fully_spliced)
+cont_tbl[2,1] = sum(predict_fully_spliced & measured_intermediate)
+
+x2 = sp.stats.chi2_contingency(cont_tbl+1,correction=False)[0]
+V = x2/(len(y_pred)*2)
+print(V)
+
+cont_tbl = cont_tbl/len(y_pred)
+print(cont_tbl*100)
+
+# cont_tbl_diag = cont_tbl[0,0] + cont_tbl[1,1] + cont_tbl[2,2]
+# print(cont_tbl_diag)
+
+
+#%%
 for feature in cat_features:
     X_train[feature]=X_train[feature].astype('float')
     X_test[feature]=X_test[feature].astype('float')
@@ -119,6 +197,7 @@ for f in df_ss3_map.values:
     X_train['ss3_seq'].iloc[np.where(X_train['ss3_seq']==f[1])]=f[2]    
     
 ##
+
     
 shap.summary_plot(shap_values, X_train ,max_display=8,show=False)
 plt.savefig('../../Figures/Figure5/B - feature_importance_individual.png')
