@@ -162,28 +162,9 @@ end
 
 export_fig(sprintf('%sA - ss5_diff_length.png',Figures_str),'-png','-r100','-transparent'); 
 
+
+
 %% Figure S2B
-load('SplicingLib_db.mat')
-tmp_splicing_lib_tbl = splicing_lib_tbl([cellfind(splicing_lib_tbl.type,'synthetic'); cellfind(splicing_lib_tbl.type,'synthetic mutated')],:);
-consensus_inds=cellfind(tmp_splicing_lib_tbl.SS_5,'GTATGT');
-consensus_inds = intersect(consensus_inds,cellfind(tmp_splicing_lib_tbl.branch_seq,'TACTAAC'));
-tmp_tbl = tmp_splicing_lib_tbl(consensus_inds,:);
-
-inds_AG_3 = [cellfind(tmp_tbl.SS_3,'AAG'); cellfind(tmp_tbl.SS_3,'CAG'); cellfind(tmp_tbl.SS_3,'TAG')];
-
-inds_AAG = cellfind(tmp_tbl.SS_3,'AAG');
-inds_CAG = cellfind(tmp_tbl.SS_3,'CAG');
-inds_TAG = cellfind(tmp_tbl.SS_3,'TAG');
-figure('units','centimeters','outerposition',[2 2 24 13.5])
-myviolinplot_mean({tmp_tbl.cryptic_splicing_eff_log(inds_AAG),tmp_tbl.cryptic_splicing_eff_log(inds_CAG),tmp_tbl.cryptic_splicing_eff_log(inds_TAG),tmp_tbl.cryptic_splicing_eff_log(setdiff(1:size(tmp_tbl,1),inds_AG_3))})
-ax = gca;
-ylabel('Cryptic splicing efficiency')
-ax.XTickLabel = {'AAG','CAG','TAG','Other'};
-ax.FontSize = 20;
-
-export_fig(sprintf('%sB - cryptic_intended_3SS_synthetic.png',Figures_str),'-png','-r100','-transparent');
-
-%% Figure S2C
 
 inds = cellfind(splicing_lib_tbl.type,'synthetic');
 inds = [inds; cellfind(splicing_lib_tbl.type,'synthetic mutated')];
@@ -234,7 +215,7 @@ ax.CLim=[0 0.5];
 colormap(jet(256))
 colorbar;
 
-export_fig(sprintf('%sC1 - ss5_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sB1 - ss5_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
 
 consensus_branch='TACTAAC';
 non_consensus_mat_branch=zeros(4,length(consensus_branch));
@@ -271,7 +252,7 @@ ax.CLim=[0 0.5];
 colormap(jet(256))
 colorbar;
 
-export_fig(sprintf('%sC2 - branch_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sB2 - branch_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
 
 
 consensus_ss3_1='TAG';
@@ -314,9 +295,9 @@ ax.CLim=[0 0.5];
 colormap(jet(256))
 colorbar;
     
-export_fig(sprintf('%sC3 - ss3_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sB3 - ss3_mutations_imagesc.png',Figures_str),'-png','-r100','-transparent');
 
-%% Figure S2D
+%% Figure S2C
 load('SplicingLib_db.mat')
 
 load('site_dG_GC_30.mat')
@@ -418,8 +399,83 @@ xlim([0.5 length(violin_cell)+0.5]);
 
 p = get_T_p_val_mat(violin_cell);
 
-export_fig(sprintf('%sD - hairpin_sites.png',Figures_str),'-png','-r100','-transparent');
+export_fig(sprintf('%sC - hairpin_sites.png',Figures_str),'-png','-r100','-transparent');
 
+%% Figure S2D
+
+alt_inds = find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic alternative background')),splicing_lib_tbl.type,'un',0)));
+syn_inds = find(cell2mat(cellfun(@(y) (strcmp(y,'synthetic')),splicing_lib_tbl.type,'un',0)) & ...
+    strcmp(splicing_lib_tbl.SS_5,'GTATGT') & strcmp(splicing_lib_tbl.branch_seq,'TACTAAC') & ...
+    (strcmp(splicing_lib_tbl.SS_3,'CAG') | strcmp(splicing_lib_tbl.SS_3,'TAG')));
+
+syn_backgrounds_tbl=splicing_lib_tbl([syn_inds;alt_inds],:);
+
+alt_bg_SE_tbl=table();
+
+n=1;
+for i=1:size(syn_backgrounds_tbl,1)
+    if strcmp(syn_backgrounds_tbl.SS_3{i},'CAG')
+        id3=1;
+    elseif strcmp(syn_backgrounds_tbl.SS_3{i},'TAG')
+        id3=2;
+    else
+        error('unsupported 3'' site');
+    end
+    
+    id_vec=[syn_backgrounds_tbl.intron_len{i},syn_backgrounds_tbl.branch_pos_from_3{i},syn_backgrounds_tbl.W_tail_len{i} ,id3];
+    syn_backgrounds_tbl.id_vec{i}=num2str(id_vec);
+    
+    if i>1
+        ind = cellfind(alt_bg_SE_tbl.id_vec,syn_backgrounds_tbl.id_vec{i});
+        if isempty(ind)
+            alt_bg_SE_tbl.id_vec{n}=syn_backgrounds_tbl.id_vec{i};
+            alt_bg_SE_tbl.intron_len{n}=syn_backgrounds_tbl.intron_len{i};
+            alt_bg_SE_tbl.branch_pos_from_3{n}=syn_backgrounds_tbl.branch_pos_from_3{i};
+            alt_bg_SE_tbl.W_tail_len{n}=syn_backgrounds_tbl.W_tail_len{i};
+            alt_bg_SE_tbl.id3(n)=id3;
+            n=n+1;
+        end
+    else
+        alt_bg_SE_tbl.id_vec{n}=syn_backgrounds_tbl.id_vec{i};
+        alt_bg_SE_tbl.intron_len{n}=syn_backgrounds_tbl.intron_len{i};
+        alt_bg_SE_tbl.branch_pos_from_3{n}=syn_backgrounds_tbl.branch_pos_from_3{i};
+        alt_bg_SE_tbl.W_tail_len{n}=syn_backgrounds_tbl.W_tail_len{i};
+        alt_bg_SE_tbl.id3(n)=id3;
+        n=n+1;
+    end   
+end
+
+alt_bg_dSE_tbl=alt_bg_SE_tbl;
+alt_bg_SE_tbl{:,6:15}=zeros(size(alt_bg_SE_tbl,1),10);
+for i=1:size(syn_backgrounds_tbl,1)
+    ind = cellfind(alt_bg_SE_tbl.id_vec,syn_backgrounds_tbl.id_vec{i});
+    bg = syn_backgrounds_tbl.background{i};
+    alt_bg_SE_tbl{ind,5+bg}=syn_backgrounds_tbl.splicing_eff_median(i);
+end
+alt_bg_dSE_tbl{:,6:14}=alt_bg_SE_tbl{:,7:15}-alt_bg_SE_tbl{:,6};
+bg_names={'MUD1','UBC9','SNC1','rand1','rand2','rand3','rand4','rand5','rand6','rand7'};
+alt_bg_SE_tbl.Properties.VariableNames(6:end)=bg_names;
+alt_bg_dSE_tbl.Properties.VariableNames(6:end)=bg_names(2:end);
+
+%%
+figure('units','centimeters','outerposition',[5 5 32 18])
+violin_cell={};
+for i=2:length(bg_names)
+    violin_cell{1,i-1}=alt_bg_dSE_tbl.(bg_names{i});
+end
+myviolinplot_mean(violin_cell)
+ax = gca;
+ax.XTickLabel = bg_names(2:end);
+% xlabel('Bacground sequence')
+% ylabel('\Delta Splicing efficiency')
+ax.FontSize = 20;
+
+
+[~,p] = cellfun(@ttest, violin_cell);
+
+p_mat = get_Tpaired_p_val_mat(violin_cell);
+
+export_fig(sprintf('%sD - Alternative_backgrounds.png',Figures_str),'-png','-r100','-transparent');
 
 
 
